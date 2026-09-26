@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI-Based Fake Identity &amp; Document Screening System — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10141B; --panel:#171D27; --card:#1E2530; --card-2:#242C39;
+    --line:#2C3444; --line-strong:#3A4557;
+    --text:#E9ECF1; --text-2:#9BA7B8; --text-3:#6B7688;
+    --gold:#E3B341; --gold-dim:#7A6229;
+    --green:#3DD68C; --green-dim:#123024;
+    --red:#F0555B; --red-dim:#3A1518;
+    --blue:#4FA3E3; --blue-dim:#122436;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',sans-serif; font-size:15px; line-height:1.55;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:1160px; margin:0 auto;}
+  h1,h2,h3{font-family:'Source Serif 4',serif; font-weight:600; margin:0;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .eyebrow{color:var(--gold); font-size:12px; letter-spacing:.02em; margin:0 0 6px;}
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    border-bottom:1px solid var(--line); padding-bottom:24px; margin-bottom:28px; flex-wrap:wrap;
+  }
+  header.top h1{font-size:28px; max-width:640px;}
+  header.top p{color:var(--text-2); max-width:640px; margin:8px 0 0; font-size:14px;}
+  .seal{
+    text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-3);
+    border:1px solid var(--line); border-radius:4px; padding:10px 14px; min-width:170px;
+  }
+  .seal b{color:var(--gold); display:block; font-size:13px; margin-bottom:2px;}
+
+  .grid{display:grid; grid-template-columns: 380px 1fr; gap:20px;}
+  @media (max-width:860px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px;}
+  .panel + .panel{margin-top:20px;}
+  .panel h2{font-size:16px; margin-bottom:4px;}
+  .panel .sub{color:var(--text-2); font-size:12.5px; margin-bottom:16px;}
+
+  .drop{
+    border:1px dashed var(--line-strong); border-radius:8px; padding:22px;
+    text-align:center; cursor:pointer; transition:border-color .15s;
+    background:var(--card);
+  }
+  .drop:hover{border-color:var(--gold);}
+  .drop i{font-size:26px; color:var(--text-3); display:block; margin-bottom:8px;}
+  .drop span{font-size:13px; color:var(--text-2);}
+  input[type=file]{display:none;}
+
+  .row-btns{display:flex; gap:10px; margin-top:12px;}
+  .sample-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;}
+  .sample-btn{
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:500; cursor:pointer;
+    border-radius:6px; padding:9px 10px; border:1px solid var(--line-strong);
+    background:var(--card-2); color:var(--text); text-align:left; transition:background .15s;
+  }
+  .sample-btn:hover{background:#2B3444; border-color:var(--gold);}
+  .sample-btn span{display:block; font-size:10.5px; color:var(--text-3); font-family:'JetBrains Mono',monospace; margin-top:2px;}
+  button{
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:500; cursor:pointer;
+    border-radius:6px; padding:9px 14px; border:1px solid var(--line-strong);
+    background:var(--card-2); color:var(--text); transition:background .15s, opacity .15s;
+  }
+  button:hover{background:#2B3444;}
+  button.primary{background:var(--gold); border-color:var(--gold); color:#241B04;}
+  button.primary:hover{background:#EFC562;}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  button.block{width:100%;}
+
+  .preview{margin-top:14px; position:relative;}
+  .preview canvas, .preview img{width:100%; border-radius:6px; border:1px solid var(--line); display:block;}
+  .preview-label{font-size:11px; color:var(--text-3); margin:6px 0 4px;}
+
+  .face-slots{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+  .face-slot{text-align:center;}
+  .face-slot .drop{padding:14px 8px;}
+  .face-slot canvas, .face-slot img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px; border:1px solid var(--line); margin-top:6px;}
+
+  .stage{
+    border:1px solid var(--line); border-radius:8px; margin-bottom:14px; overflow:hidden;
+  }
+  .stage-head{
+    display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--card);
+  }
+  .stage-num{
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;
+    font-size:12px; color:var(--text-3); flex-shrink:0;
+  }
+  .stage.done .stage-num{background:var(--green-dim); border-color:var(--green); color:var(--green);}
+  .stage.running .stage-num{background:var(--blue-dim); border-color:var(--blue); color:var(--blue);}
+  .stage-title{flex:1;}
+  .stage-title b{font-size:14px; display:block;}
+  .stage-title span{font-size:12px; color:var(--text-3);}
+  .stage-status{font-size:11.5px; font-family:'JetBrains Mono',monospace; padding:3px 9px; border-radius:20px; border:1px solid var(--line-strong); color:var(--text-3);}
+  .stage.done .stage-status{color:var(--green); border-color:var(--green); background:var(--green-dim);}
+  .stage.running .stage-status{color:var(--blue); border-color:var(--blue); background:var(--blue-dim);}
+  .stage-body{padding:0 16px 16px; display:none;}
+  .stage.done .stage-body, .stage.running .stage-body{display:block;}
+
+  table.fields{width:100%; border-collapse:collapse; font-size:13px;}
+  table.fields td{padding:6px 0; border-bottom:1px solid var(--line); vertical-align:top;}
+  table.fields td:first-child{color:var(--text-2); width:42%;}
+  table.fields td:last-child{font-family:'JetBrains Mono',monospace; color:var(--text);}
+
+  .flag{display:flex; gap:8px; align-items:flex-start; font-size:13px; padding:7px 0; border-bottom:1px solid var(--line);}
+  .flag:last-child{border-bottom:none;}
+  .flag i{font-size:15px; margin-top:1px; flex-shrink:0;}
+  .flag.ok i{color:var(--green);} .flag.warn i{color:var(--gold);} .flag.bad i{color:var(--red);}
+
+  .heat-wrap{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+  .heat-wrap canvas{width:100%; border-radius:6px; border:1px solid var(--line);}
+  .heat-label{font-size:11px; color:var(--text-3); margin-bottom:4px;}
+
+  .verdict{
+    border-radius:10px; padding:22px 24px; margin-top:6px; display:flex; gap:24px; align-items:center; flex-wrap:wrap;
+    border:1px solid var(--line);
+  }
+  .verdict.low{background:var(--green-dim); border-color:var(--green);}
+  .verdict.med{background:#2E2308; border-color:var(--gold);}
+  .verdict.high{background:var(--red-dim); border-color:var(--red);}
+  .gauge{width:120px; height:120px; flex-shrink:0; position:relative;}
+  .gauge svg{transform:rotate(-90deg);}
+  .gauge-num{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;}
+  .gauge-num b{font-size:26px; font-family:'JetBrains Mono',monospace;}
+  .gauge-num span{font-size:10px; color:var(--text-3);}
+  .verdict-text{flex:1; min-width:220px;}
+  .verdict-text h3{font-size:19px; margin-bottom:6px;}
+  .verdict-text p{color:var(--text-2); font-size:13px; margin:0;}
+
+  .note{font-size:12px; color:var(--text-3); margin-top:10px; padding-top:10px; border-top:1px solid var(--line);}
+  .badge{display:inline-block; font-size:10.5px; font-family:'JetBrains Mono',monospace; padding:2px 7px; border-radius:4px; margin-left:6px; vertical-align:1px;}
+  .badge.real{background:var(--blue-dim); color:var(--blue); border:1px solid var(--blue);}
+  .badge.sim{background:var(--card-2); color:var(--text-3); border:1px solid var(--line-strong);}
+  progress{width:100%; height:5px; margin-top:8px; accent-color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <p class="eyebrow mono">PROTOTYPE — SCREENING CONSOLE</p>
+      <h1>AI-based fake identity &amp; document screening system</h1>
+      <p>Upload a travel document, run it through the OCR → validation → tampering → face-match pipeline, and get an explainable risk score for border officers.</p>
+    </div>
+    <div class="seal">
+      <b>MOD 1–4 ACTIVE</b>
+      Client-side pipeline<br/>no data leaves this page
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: INTAKE -->
+    <div>
+      <div class="panel">
+        <h2>Document intake</h2>
+        <p class="sub">Upload a passport / ID / visa image, or load one of four synthetic test samples (all generated on-device — no real personal data).</p>
+        <div class="drop" id="docDrop">
+          <i class="ti ti-id-badge-2"></i>
+          <span>Click to upload a document image</span>
+        </div>
+        <input type="file" id="docInput" accept="image/*" />
+        <div class="sample-grid">
+          <button class="sample-btn" data-variant="genuine">Genuine<span>clean, valid</span></button>
+          <button class="sample-btn" data-variant="expired">Expired<span>fails validation</span></button>
+          <button class="sample-btn" data-variant="tampered">Tampered<span>photo swap</span></button>
+          <button class="sample-btn" data-variant="blacklisted">Blacklisted<span>watchlist hit</span></button>
+        </div>
+        <div class="preview" id="docPreviewWrap" style="display:none;">
+          <p class="preview-label">Original upload</p>
+          <canvas id="docCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Face verification inputs</h2>
+        <p class="sub">Document photo vs. live capture, for module 4.</p>
+        <div class="face-slots">
+          <div class="face-slot">
+            <div class="drop">Doc photo</div>
+            <input type="file" id="docFaceInput" accept="image/*" />
+            <canvas id="docFaceCanvas" style="display:none;"></canvas>
+          </div>
+          <div class="face-slot">
+            <div class="drop" id="liveDrop">Open camera</div>
+            <video id="liveVideo" autoplay playsinline muted style="display:none; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:6px; border:1px solid var(--line); margin-top:6px;"></video>
+            <button id="captureBtn" class="block" style="display:none; margin-top:8px;">Capture photo</button>
+            <button id="retakeBtn" class="block" style="display:none; margin-top:8px;">Retake</button>
+            <canvas id="liveFaceCanvas" style="display:none;"></canvas>
+          </div>
+        </div>
+        <div class="note" id="cameraNote" style="display:none;"></div>
+      </div>
+
+      <div class="panel">
+        <button id="runBtn" class="primary block" disabled>Run screening pipeline</button>
+        <div class="note" id="runNote">Load a document to begin.</div>
+        <div class="note">Requires the Python backend running at <span class="mono">http://localhost:8000</span> (uvicorn main:app --reload --port 8000).</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: PIPELINE -->
+    <div>
+      <div class="stage" id="stage1">
+        <div class="stage-head">
+          <div class="stage-num">1</div>
+          <div class="stage-title"><b>OCR extraction</b><span>Reading text fields from the document image</span></div>
+          <div class="stage-status">pending</div>
+        </div>
+        <div class="stage-body">
+          <progress id="ocrProgress" value="0" max="1"></progress>
+          <table class="fields" id="ocrFields"></table>
+          <div class="note" id="ocrNote"></div>
+        </div>
+      </div>
+
+      <div class="stage" id="stage2">
+        <div class="stage-head">
+          <div class="stage-num">2</div>
+          <div class="stage-title"><b>Document validation</b><span>Format, expiry and checksum rules</span></div>
+          <div class="stage-status">pending</div>
+        </div>
+        <div class="stage-body" id="validationBody"></div>
+      </div>
+
+      <div class="stage" id="stage3">
+        <div class="stage-head">
+          <div class="stage-num">3</div>
+          <div class="stage-title"><b>Tampering detection</b><span>Error level analysis (ELA) on the image</span></div>
+          <div class="stage-status">pending</div>
+        </div>
+        <div class="stage-body">
+          <div class="heat-wrap">
+            <div>
+              <p class="heat-label">Source</p>
+              <canvas id="elaSource"></canvas>
+            </div>
+            <div>
+              <p class="heat-label">ELA heatmap <span class="badge real">real analysis</span></p>
+              <canvas id="elaHeat"></canvas>
+            </div>
+          </div>
+          <div class="note" id="elaNote"></div>
+        </div>
+      </div>
+
+      <div class="stage" id="stage4">
+        <div class="stage-head">
+          <div class="stage-num">4</div>
+          <div class="stage-title"><b>Face verification</b><span>Document photo vs. live capture</span></div>
+          <div class="stage-status">pending</div>
+        </div>
+        <div class="stage-body" id="faceBody"></div>
+      </div>
+
+      <div class="panel" id="verdictPanel" style="display:none;">
+        <h2>Risk verdict</h2>
+        <p class="sub">Weighted combination of all four modules — this is what the officer sees.</p>
+        <div class="verdict" id="verdict">
+          <div class="gauge">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
+              <circle id="gaugeArc" cx="60" cy="60" r="52" fill="none" stroke="var(--gold)" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+            </svg>
+            <div class="gauge-num"><b id="gaugeNum">0</b><span>risk / 100</span></div>
+          </div>
+          <div class="verdict-text">
+            <h3 id="verdictTitle">—</h3>
+            <p id="verdictBody">Run the pipeline to see the verdict.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- helpers ----------
+function drawFileToCanvas(file, canvas, maxW){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = Math.round(img.width*scale);
+      canvas.height = Math.round(img.height*scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      resolve(canvas);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+const MOCK_BLACKLIST = ['X1234567','X9988771'];
+
+function makeSampleDocument(canvas, variant){
+  canvas.width = 560; canvas.height = 360;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#EDE6D3'; ctx.fillRect(0,0,560,360);
+  ctx.strokeStyle = '#8a7c4d'; ctx.lineWidth=3; ctx.strokeRect(6,6,548,348);
+  ctx.fillStyle = '#333'; ctx.font = '600 16px Georgia';
+  ctx.fillText('REPUBLIC OF DEMOLAND — PASSPORT', 20, 34);
+  ctx.fillStyle = '#ccc'; ctx.fillRect(20, 55, 120, 150);
+  ctx.fillStyle = '#888'; ctx.font='12px Arial'; ctx.fillText('PHOTO', 55, 135);
+
+  const passportNo = variant==='blacklisted' ? 'X9988771' : 'X1234567';
+  const expiryYear = variant==='expired' ? '2019' : '2032';
+  const name = variant==='blacklisted' ? 'DOE, JANE A' : 'DOE, JANE A';
+
+  ctx.fillStyle = '#111'; ctx.font = '13px Courier New';
+  const lines = [
+    `Surname / Given: ${name}`,
+    `Passport No: ${passportNo}`,
+    'Nationality: DEMOLAND',
+    'Date of Birth: 14 MAR 1990',
+    'Sex: F',
+    'Date of Issue: 02 JAN 2022',
+    `Date of Expiry: 01 JAN ${expiryYear}`
+  ];
+  lines.forEach((l,i)=> ctx.fillText(l, 160, 75 + i*24));
+  ctx.font='12px Courier New';
+  ctx.fillText(`P<DEMDOE<<JANE<A<<<<<<<<<<<<<<<<<<<<<<<<<<<`, 20, 300);
+  const mrzCheck = mrzCheckDigit(passportNo.padEnd(9,'<'));
+  const mrzLine2 = `${passportNo}<3DEM9003142F3201013<<<<<<<<<<<<<<${variant==='tampered' ? (mrzCheck+1)%10 : mrzCheck}`;
+  ctx.fillText(mrzLine2, 20, 320);
+
+  if(variant==='tampered'){
+    // Real localized tamper: re-compress the photo box region at a very different
+    // JPEG quality and paste it back, so ELA genuinely picks up the mismatch.
+    const region = { x:20, y:55, w:120, h:150 };
+    const patch = document.createElement('canvas');
+    patch.width = region.w; patch.height = region.h;
+    patch.getContext('2d').drawImage(canvas, region.x, region.y, region.w, region.h, 0,0, region.w, region.h);
+    const lowQURL = patch.toDataURL('image/jpeg', 0.15);
+    const img = new Image();
+    img.src = lowQURL;
+    return new Promise(res=>{
+      img.onload = ()=>{
+        ctx.drawImage(img, region.x, region.y, region.w, region.h);
+        ctx.strokeStyle='#999'; ctx.lineWidth=1; ctx.strokeRect(region.x,region.y,region.w,region.h);
+        res(canvas);
+      };
+    });
+  }
+  return Promise.resolve(canvas);
+}
+
+function toGray(imgData){
+  const d = imgData.data, out = new Float32Array(d.length/4);
+  for(let i=0,j=0;i<d.length;i+=4,j++) out[j] = 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+  return out;
+}
+
+// ---------- state ----------
+let docCanvas = document.getElementById('docCanvas');
+let hasDoc = false, hasDocFace = false, hasLiveFace = false;
+
+function checkReady(){
+  const btn = document.getElementById('runBtn');
+  btn.disabled = !hasDoc;
+  document.getElementById('runNote').textContent = hasDoc
+    ? (hasDocFace && hasLiveFace ? 'Ready — all inputs loaded.' : 'Ready — face verification will run in simulated mode without both photos.')
+    : 'Load a document to begin.';
+}
+
+document.getElementById('docDrop').onclick = ()=> document.getElementById('docInput').click();
+document.getElementById('docInput').onchange = async (e)=>{
+  if(!e.target.files[0]) return;
+  await drawFileToCanvas(e.target.files[0], docCanvas, 560);
+  document.getElementById('docPreviewWrap').style.display='block';
+  hasDoc = true; checkReady();
+};
+document.querySelectorAll('.sample-btn').forEach(btn=>{
+  btn.onclick = async ()=>{
+    await makeSampleDocument(docCanvas, btn.dataset.variant);
+    document.getElementById('docPreviewWrap').style.display='block';
+    hasDoc = true; checkReady();
+  };
+});
+
+document.querySelector('.face-slot .drop').onclick = ()=> document.getElementById('docFaceInput').click();
+document.getElementById('docFaceInput').onchange = async(e)=>{
+  if(!e.target.files[0]) return;
+  const c = document.getElementById('docFaceCanvas');
+  await drawFileToCanvas(e.target.files[0], c, 200); c.style.display='block';
+  hasDocFace = true; checkReady();
+};
+
+// ---- live camera capture ----
+let cameraStream = null;
+const liveDrop = document.getElementById('liveDrop');
+const liveVideo = document.getElementById('liveVideo');
+const captureBtn = document.getElementById('captureBtn');
+const retakeBtn = document.getElementById('retakeBtn');
+const liveFaceCanvas = document.getElementById('liveFaceCanvas');
+const cameraNote = document.getElementById('cameraNote');
+
+async function openCamera(){
+  cameraNote.style.display='none';
+  try{
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' }, audio:false });
+    liveVideo.srcObject = cameraStream;
+    liveDrop.style.display='none';
+    liveVideo.style.display='block';
+    captureBtn.style.display='block';
+    liveFaceCanvas.style.display='none';
+    retakeBtn.style.display='none';
+  }catch(err){
+    cameraNote.style.display='block';
+    cameraNote.textContent = 'Could not access the camera (permission denied, no camera found, or this page was opened without HTTPS). Grant camera access and try again.';
+  }
+}
+function stopCamera(){
+  if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; }
+}
+liveDrop.onclick = openCamera;
+captureBtn.onclick = ()=>{
+  const size = Math.min(liveVideo.videoWidth, liveVideo.videoHeight);
+  liveFaceCanvas.width = 200; liveFaceCanvas.height = 200;
+  const ctx = liveFaceCanvas.getContext('2d');
+  const sx = (liveVideo.videoWidth - size)/2, sy = (liveVideo.videoHeight - size)/2;
+  ctx.drawImage(liveVideo, sx, sy, size, size, 0, 0, 200, 200);
+  stopCamera();
+  liveVideo.style.display='none';
+  captureBtn.style.display='none';
+  liveFaceCanvas.style.display='block';
+  retakeBtn.style.display='block';
+  hasLiveFace = true; checkReady();
+};
+retakeBtn.onclick = ()=>{
+  hasLiveFace = false; checkReady();
+  openCamera();
+};
+
+function setStage(id, state, statusText){
+  const el = document.getElementById(id);
+  el.classList.remove('done','running');
+  if(state) el.classList.add(state);
+  el.querySelector('.stage-status').textContent = statusText;
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// MRZ check digit — still used locally to generate believable sample documents
+function mrzCheckDigit(str){
+  const vals = c => c==='<' ? 0 : (/[0-9]/.test(c) ? +c : c.charCodeAt(0)-55);
+  const weights = [7,3,1];
+  let sum = 0;
+  for(let i=0;i<str.length;i++) sum += vals(str[i]) * weights[i%3];
+  return sum % 10;
+}
+
+const BACKEND_URL = 'http://localhost:8000';
+
+function canvasToBlob(canvas, quality){
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality ?? 0.92));
+}
+
+function resetStages(){
+  ['stage1','stage2','stage3','stage4'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.classList.remove('done','running');
+    el.querySelector('.stage-status').textContent = 'pending';
+  });
+  document.getElementById('ocrFields').innerHTML = '';
+  document.getElementById('ocrNote').textContent = '';
+  document.getElementById('ocrProgress').value = 0;
+  document.getElementById('validationBody').innerHTML = '';
+  document.getElementById('elaNote').textContent = '';
+  document.getElementById('faceBody').innerHTML = '';
+  document.getElementById('verdictPanel').style.display = 'none';
+}
+
+function flagIcon(type){
+  return type === 'ok' ? 'circle-check' : type === 'warn' ? 'alert-triangle' : 'circle-x';
+}
+
+function renderOCR(ocr){
+  setStage('stage1','done','complete');
+  document.getElementById('ocrProgress').value = 1;
+  const f = ocr.fields || {};
+  const rows = {
+    'Name': f.name,
+    'Passport number': f.passport_number,
+    'Nationality': f.nationality,
+    'Date of birth': f.date_of_birth,
+    'Sex': f.sex,
+    'Date of expiry': f.date_of_expiry,
+  };
+  document.getElementById('ocrFields').innerHTML = Object.entries(rows).map(([k,v])=>
+    `<tr><td>${k}</td><td>${v || '<span style="color:var(--text-3)">not detected</span>'}</td></tr>`
+  ).join('');
+  document.getElementById('ocrNote').textContent =
+    'Real OCR via Tesseract, running in the Python backend. Field parsing is a regex heuristic — production would use a purpose-built ID/MRZ parser (AWS Textract AnalyzeID, Azure Document Intelligence ID model, or PassportEye).';
+}
+
+function renderValidation(validation){
+  setStage('stage2','done','complete');
+  const flags = validation.flags || [];
+  document.getElementById('validationBody').innerHTML = flags.map(f=>
+    `<div class="flag ${f.type}"><i class="ti ti-${flagIcon(f.type)}"></i><span>${f.message}</span></div>`
+  ).join('') + `<div class="note">Real check: ICAO 9303 MRZ checksum, expiry check and blacklist lookup — computed in the Python backend.</div>`;
+}
+
+function renderTampering(tampering){
+  return new Promise((resolve)=>{
+    setStage('stage3','done','complete');
+
+    const src = document.getElementById('elaSource');
+    src.width = docCanvas.width; src.height = docCanvas.height;
+    src.getContext('2d').drawImage(docCanvas, 0, 0);
+
+    const heat = document.getElementById('elaHeat');
+    const img = new Image();
+    img.onload = ()=>{
+      heat.width = img.width; heat.height = img.height;
+      heat.getContext('2d').drawImage(img, 0, 0);
+
+      const metaFlags = tampering.metadata_flags || [];
+      const metaNote = metaFlags.length ? ' Metadata: ' + metaFlags.join(' ') : '';
+      document.getElementById('elaNote').textContent =
+        `Tamper indicator score: ${tampering.tamper_score}/100 (avg error level ${tampering.avg_error_level}).${metaNote} Real Error Level Analysis, computed in the Python backend.`;
+      resolve();
+    };
+    img.src = 'data:image/png;base64,' + tampering.heatmap_image_base64;
+  });
+}
+
+function renderFace(face){
+  setStage('stage4','done','complete');
+  const pct = face.similarity_percent;
+  const cls = pct > 70 ? 'ok' : pct > 45 ? 'warn' : 'bad';
+  let detail = '';
+  if('face_detected_in_document' in face){
+    detail = ` (face detected — document: ${face.face_detected_in_document ? 'yes' : 'no'}, live capture: ${face.face_detected_in_live_capture ? 'yes' : 'no'})`;
+  }
+  document.getElementById('faceBody').innerHTML =
+    `<div class="flag ${cls}"><i class="ti ti-face-id"></i><span>Similarity score: <b>${pct}%</b>${detail}</span></div>` +
+    `<div class="note">${face.note || ''}</div>`;
+}
+
+function showVerdict(risk, tamperScore, matchPct, validationScore, summary){
+  document.getElementById('verdictPanel').style.display='block';
+  const circumference = 2*Math.PI*52;
+  const offset = circumference - (risk/100)*circumference;
+  document.getElementById('gaugeArc').setAttribute('stroke-dashoffset', offset);
+  document.getElementById('gaugeNum').textContent = risk;
+
+  const v = document.getElementById('verdict');
+  v.className = 'verdict ' + (risk<30?'low':risk<60?'med':'high');
+  document.getElementById('gaugeArc').setAttribute('stroke', risk<30?'var(--green)':risk<60?'var(--gold)':'var(--red)');
+
+  const titles = { low: 'Low risk — clear to proceed', med: 'Medium risk — manual review recommended', high: 'High risk — flag for secondary inspection' };
+  const bucket = risk<30?'low':risk<60?'med':'high';
+  document.getElementById('verdictTitle').textContent = titles[bucket];
+  document.getElementById('verdictBody').textContent =
+    `Tampering ${tamperScore}/100, face match ${matchPct}%, validation issues ${validationScore}/100. ${summary}`;
+}
+
+// ---------- RUN PIPELINE (calls the Python backend) ----------
+document.getElementById('runBtn').onclick = async ()=>{
+  const runBtn = document.getElementById('runBtn');
+  runBtn.disabled = true;
+  resetStages();
+  setStage('stage1','running','sending to backend...');
+
+  try{
+    const form = new FormData();
+    form.append('document', await canvasToBlob(docCanvas), 'document.jpg');
+    if(hasDocFace) form.append('doc_photo', await canvasToBlob(document.getElementById('docFaceCanvas')), 'doc_face.jpg');
+    if(hasLiveFace) form.append('live_photo', await canvasToBlob(liveFaceCanvas), 'live_face.jpg');
+
+    const res = await fetch(`${BACKEND_URL}/api/screen`, { method: 'POST', body: form });
+    if(!res.ok) throw new Error(`server responded with ${res.status}`);
+    const data = await res.json();
+
+    renderOCR(data.ocr);
+    setStage('stage2','running','checking...'); await sleep(150);
+    renderValidation(data.validation);
+    setStage('stage3','running','analyzing pixels...'); await sleep(150);
+    await renderTampering(data.tampering);
+    setStage('stage4','running','comparing faces...'); await sleep(150);
+    renderFace(data.face_verification);
+    await sleep(150);
+
+    const b = data.risk.breakdown;
+    showVerdict(data.risk.risk_score, b.tamper_score, 100 - b.face_mismatch, b.validation_score, data.risk.summary);
+
+  }catch(err){
+    setStage('stage1','','error');
+    document.getElementById('ocrNote').textContent =
+      `Could not reach the backend at ${BACKEND_URL} — make sure the server is running (uvicorn main:app --reload --port 8000 in the backend folder) and try again. (${err.message})`;
+  }
+
+  runBtn.disabled = false;
+};
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+</body>
+</html>

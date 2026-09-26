@@ -1,0 +1,10 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+python-multipart>=0.0.9
+pillow>=10.4.0
+pytesseract>=0.3.13
+# Pinned below 5.x on purpose: 5.0.0.93 is a very new release that has shown
+# CascadeClassifier/attribute issues on Windows. The 4.x line is the mature,
+# widely-used one and still actively maintained (4.14.x), so we stay on it.
+opencv-python-headless>=4.10.0.84,<5.0.0
+numpy>=1.26.4
