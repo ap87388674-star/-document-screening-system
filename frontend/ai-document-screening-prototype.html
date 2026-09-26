@@ -460,7 +460,7 @@ function mrzCheckDigit(str){
   return sum % 10;
 }
 
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = 'https://document-screening-system-92s5.onrender.com';
 
 function canvasToBlob(canvas, quality){
   return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality ?? 0.92));
